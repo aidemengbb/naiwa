@@ -71,27 +71,31 @@
   #title .t1 { font-family: "KaiTi", "STKaiti", "楷体", serif; font-size: clamp(38px, 9.5vw, 60px); letter-spacing: 6px; color: #ffe9b8; text-shadow: 0 3px 18px rgba(0,0,0,0.95); }
   #title .t2 { margin-top: 12px; font-size: 15px; color: rgba(255,255,255,0.85); letter-spacing: 3px; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
 
-  /* 按钮组：整体贴底，内部固定间距，任何屏幕都不重叠 */
+  /* 按钮组：开始/继续 居中，功能按钮横排一行 */
   #menuBtns {
-    position: absolute; left: 50%; transform: translateX(-50%); bottom: 8vh;
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 6vh;
     display: flex; flex-direction: column; align-items: center; gap: 12px;
+    width: 88%; max-width: 340px;
   }
   #menuBtns .btn {
-    min-width: 230px; padding: 14px 40px; font-size: 17px; letter-spacing: 4px;
+    width: 100%; padding: 14px 0; font-size: 17px; letter-spacing: 4px;
     background: rgba(246, 201, 107, 0.2); color: #fff; font-weight: 700;
     border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 30px; cursor: pointer;
     backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
     box-shadow: 0 4px 20px rgba(0,0,0,0.15); text-shadow: 0 1px 6px rgba(0,0,0,0.7);
   }
-  #btnContinue, #btnChapters, #btnExtras { background: rgba(255, 255, 255, 0.09); }
-  #menuBtns .tip { margin-top: 10px; font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 1px; line-height: 1.7; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+  #btnContinue { background: rgba(255, 255, 255, 0.09); }
+  .menuRow { display: flex; gap: 10px; width: 100%; }
+  .menuRow .btn { flex: 1; min-width: 0; padding: 12px 0; font-size: 14px; letter-spacing: 1px; background: rgba(255, 255, 255, 0.09); }
+  #menuBtns .tip { margin-top: 8px; font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 1px; line-height: 1.7; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
 
   /* 极限小屏（老手机/浏览器栏占高） */
   @media (max-height: 620px) {
     #title { padding-top: 6vh; }
     #title .t1 { font-size: 34px; }
-    #menuBtns { bottom: 5vh; gap: 9px; }
-    #menuBtns .btn { min-width: 200px; padding: 11px 32px; font-size: 15px; }
+    #menuBtns { bottom: 4vh; gap: 9px; }
+    #menuBtns .btn { padding: 11px 0; font-size: 15px; }
+    .menuRow .btn { padding: 10px 0; font-size: 13px; }
     #menuBtns .tip { display: none; }
   }
 
@@ -222,9 +226,11 @@
     <div id="menuBtns">
       <button class="btn" id="btnStart">开 始</button>
       <button class="btn" id="btnContinue" style="display:none">继续游戏</button>
-      <button class="btn" id="btnChapters"><span class="ic">📚</span> 章节</button>
-      <button class="btn" id="btnExtras"><span class="ic">🎲</span> 杂项</button>
-      <button class="btn" id="btnWalls"><span class="ic">🖼</span> 壁纸</button>
+      <div class="menuRow">
+        <button class="btn" id="btnChapters"><span class="ic">📚</span>章节</button>
+        <button class="btn" id="btnExtras"><span class="ic">🎲</span>杂项</button>
+        <button class="btn" id="btnWalls"><span class="ic">🖼</span>壁纸</button>
+      </div>
       <div class="tip">建议竖屏全屏游玩 · 请佩戴耳机<br>本故事纯属虚构，如有雷同，都是小时候的事</div>
     </div>
   </div>
