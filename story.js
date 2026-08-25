@@ -97,7 +97,7 @@ const CHAPTERS = {
   },
   "ch2": {
     title: "测试",
-    code: "NG-THMDB4UF",
+    code: "NG-8QAM-CGAU",
     start: "scene1",
     scenes: {
       scene1: [
@@ -106,28 +106,18 @@ const CHAPTERS = {
       scene2: [
         { bg: "cg/test_s2", text: "测试0", voice: "test_v0.mp3" },
         { text: "测试1", voice: "test_v1.mp3" },
-        { name: "收旧", text: "测试3", choice: [{"text": "测试下", "goto": "scene1"}], next: "scene3" }
+        { name: "收旧", text: "测试3", next: "scene3" }
       ],
       scene3: [
-        { bg: "cg/test_s3" }
+        { bg: "cg/test_s3", next: "scene4" }
       ],
       scene4: [
-        {  }
+        { next: "scene5" }
       ],
       scene5: [
         { bg: "cg/test_s4", text: "测试0" },
         { text: "测试1", end: "测试结束" }
-      ],
-      scene6: [
-        { text: "嘿嘿", voice: "test_v2.webm" }
       ]
     }
   }
 };
-
-// ============================================================
-// 杂项（🎲 随意小故事，不设解锁，直接可玩）
-// 每项：{ title: 故事名, cover: 封面图, start: 起始场景, scenes: {...} }
-// 由编辑器的"杂项"项目导出后接入
-// ============================================================
-const EXTRAS = {};

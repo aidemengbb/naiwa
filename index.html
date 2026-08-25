@@ -790,6 +790,8 @@
 
   // 调试：URL 带 #scene=xxx[&node=N] 直接进入指定场景/节点；#chapters 直达章节界面
   function parseHash() {
+    var chm = location.hash.match(/ch=([a-z0-9_]+)/);
+    if (chm && CHAPTERS[chm[1]]) chapterId = chm[1];
     if (location.hash.indexOf("chapters") >= 0) {
       $("title").style.display = "none";
       renderChapters();
