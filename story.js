@@ -94,6 +94,34 @@ const CHAPTERS = {
       { bg: "cg/store8", text: "他抬头，看见黄昏的太阳正慢慢往下沉，像一颗化开的糖。", end: "watch" },
     ],
     }
+  },
+  "ch2": {
+    title: "测试",
+    code: "NG-THMDB4UF",
+    start: "scene1",
+    scenes: {
+      scene1: [
+        { bg: "cg/test_s1", choice: [{"text": "你好测试", "goto": "scene2"}] }
+      ],
+      scene2: [
+        { bg: "cg/test_s2", text: "测试0", voice: "test_v0.mp3" },
+        { text: "测试1", voice: "test_v1.mp3" },
+        { name: "收旧", text: "测试3", choice: [{"text": "测试下", "goto": "scene1"}], next: "scene3" }
+      ],
+      scene3: [
+        { bg: "cg/test_s3" }
+      ],
+      scene4: [
+        {  }
+      ],
+      scene5: [
+        { bg: "cg/test_s4", text: "测试0" },
+        { text: "测试1", end: "测试结束" }
+      ],
+      scene6: [
+        { text: "嘿嘿", voice: "test_v2.webm" }
+      ]
+    }
   }
 };
 

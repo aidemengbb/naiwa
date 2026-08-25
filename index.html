@@ -378,7 +378,8 @@
   function playVoice(file) {
     if (!file) return;
     if (voice) { voice.pause(); voice.currentTime = 0; }
-    voice = new Audio(resolve("assets/voice/" + file + ".mp3"));
+    var src = file.indexOf(".") >= 0 ? file : file + ".mp3";
+    voice = new Audio(resolve("assets/voice/" + src));
     voice.play().catch(function () {});
   }
 
@@ -510,13 +511,19 @@
     if (node.bg) setBg(node.bg, node.fade === "black");
     if (node.char) setSprite(node.char, node.expr); else setSprite(null);
     if (node.voice) playVoice(node.voice);
+    if (node.choice && !node.text && !node.quote) {
+      // 无对白的选项场景：直接显示选项
+      hideQuote(); hideDialog();
+      showChoices(node.choice);
+      return;
+    }
     if (node.quote) {
       dialog.classList.remove("on");
       showQuote(node.quote, function () {});
     } else {
       hideQuote();
       showDialog(node);
-      typeText(node.text, node);
+      typeText(node.text || "", node);
     }
     save();
   }
