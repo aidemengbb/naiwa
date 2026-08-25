@@ -68,17 +68,29 @@
   }
   #title .t1 { font-family: "KaiTi", "STKaiti", "楷体", serif; font-size: clamp(38px, 9.5vw, 60px); letter-spacing: 6px; color: #ffe9b8; text-shadow: 0 3px 18px rgba(0,0,0,0.95); }
   #title .t2 { margin-top: 12px; font-size: 15px; color: rgba(255,255,255,0.85); letter-spacing: 3px; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
-  #title .btn {
-    position: absolute; left: 50%; transform: translateX(-50%);
-    padding: 14px 52px; font-size: 18px; letter-spacing: 4px;
+
+  /* 按钮组：整体贴底，内部固定间距，任何屏幕都不重叠 */
+  #menuBtns {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 8vh;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  #menuBtns .btn {
+    min-width: 230px; padding: 14px 40px; font-size: 17px; letter-spacing: 4px;
     background: rgba(246, 201, 107, 0.92); color: #3a2a10; font-weight: 700;
     border: none; border-radius: 30px; cursor: pointer;
   }
-  #btnStart { bottom: 35vh; }
-  #btnContinue { bottom: 27vh; background: rgba(255,255,255,0.16); color: #fff; }
-  #btnChapters { bottom: 19vh; padding: 11px 40px; font-size: 15px; letter-spacing: 3px; }
-  #btnExtras { bottom: 11vh; padding: 11px 40px; font-size: 15px; letter-spacing: 3px; }
-  #title .tip { position: absolute; bottom: 5vh; width: 100%; font-size: 12px; color: rgba(255,255,255,0.5); letter-spacing: 1px; line-height: 1.8; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+  #btnContinue { background: rgba(255,255,255,0.16); color: #fff; }
+  #btnChapters, #btnExtras { padding: 12px 36px; font-size: 15px; letter-spacing: 3px; }
+  #menuBtns .tip { margin-top: 10px; font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 1px; line-height: 1.7; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+
+  /* 极限小屏（老手机/浏览器栏占高） */
+  @media (max-height: 620px) {
+    #title { padding-top: 6vh; }
+    #title .t1 { font-size: 34px; }
+    #menuBtns { bottom: 5vh; gap: 9px; }
+    #menuBtns .btn { min-width: 200px; padding: 11px 32px; font-size: 15px; }
+    #menuBtns .tip { display: none; }
+  }
 
   /* 章节选择 */
   #chapters {
@@ -171,11 +183,13 @@
   <div id="title">
     <div class="t1">蛙之港湾</div>
     <div class="t2">第一章 · 小卖部</div>
-    <button class="btn" id="btnStart">开 始</button>
-    <button class="btn" id="btnContinue" style="display:none">继续游戏</button>
-    <button class="btn" id="btnChapters">📚 章节</button>
-    <button class="btn" id="btnExtras">🎲 杂项</button>
-    <div class="tip">建议竖屏全屏游玩 · 请佩戴耳机<br>本故事纯属虚构，如有雷同，都是小时候的事</div>
+    <div id="menuBtns">
+      <button class="btn" id="btnStart">开 始</button>
+      <button class="btn" id="btnContinue" style="display:none">继续游戏</button>
+      <button class="btn" id="btnChapters">📚 章节</button>
+      <button class="btn" id="btnExtras">🎲 杂项</button>
+      <div class="tip">建议竖屏全屏游玩 · 请佩戴耳机<br>本故事纯属虚构，如有雷同，都是小时候的事</div>
+    </div>
   </div>
   <div id="chapters">
     <div class="c-title">📚 章节</div>
