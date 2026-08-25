@@ -95,6 +95,18 @@
     #menuBtns .tip { display: none; }
   }
 
+
+  /* 兼容模式（百度/荣耀内核）：最朴素界面，杜绝渲染错乱 */
+  .compat #menuBtns .btn { background: rgba(246, 201, 107, 0.95); color: #3a2a10; text-shadow: none; border: none; box-shadow: none; }
+  .compat #btnContinue, .compat #btnChapters, .compat #btnExtras { background: rgba(30, 34, 46, 0.95); color: #fff; }
+  .compat .ic { display: none; }
+  .compat #dialog { background: rgba(18, 22, 32, 0.95); }
+  .compat #choices button { background: rgba(30, 34, 46, 0.95); }
+  .compat #chapters, .compat #extras { background: rgba(8, 8, 14, 0.97); }
+  .compat .cf-box { background: rgba(22, 24, 36, 0.98); }
+  .compat #end { background: rgba(5, 5, 10, 0.95); }
+  .compat #title { background: rgba(6, 6, 12, 0.55); }
+
   /* 不支持毛玻璃的浏览器：降级为实色，保证文字正常显示 */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     #dialog { background: rgba(18, 22, 32, 0.9); }
@@ -210,8 +222,8 @@
     <div id="menuBtns">
       <button class="btn" id="btnStart">开 始</button>
       <button class="btn" id="btnContinue" style="display:none">继续游戏</button>
-      <button class="btn" id="btnChapters">📚 章节</button>
-      <button class="btn" id="btnExtras">🎲 杂项</button>
+      <button class="btn" id="btnChapters"><span class="ic">📚</span> 章节</button>
+      <button class="btn" id="btnExtras"><span class="ic">🎲</span> 杂项</button>
       <div class="tip">建议竖屏全屏游玩 · 请佩戴耳机<br>本故事纯属虚构，如有雷同，都是小时候的事</div>
     </div>
   </div>
@@ -727,6 +739,11 @@
         render();
       }
     }
+  }
+
+  // 百度/荣耀内核：启用兼容模式
+  if (/baiduboxapp|com\.hihonor\.baidu|baidu|Baidu/i.test(navigator.userAgent)) {
+    document.documentElement.classList.add("compat");
   }
 
   showTitle();
