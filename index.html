@@ -523,6 +523,12 @@
 
   function advance() {
     if (inChoice || ended) return;
+    // 主菜单/章节/杂项/壁纸/结局界面显示时，点击不推进游戏
+    if ($("title").style.display !== "none") return;
+    if ($("chapters").style.display !== "none") return;
+    if ($("extras").style.display !== "none") return;
+    if ($("walls").style.display !== "none") return;
+    if ($("end").style.display !== "none") return;
     var node = curScene[curIdx];
     if (!node) return;
     if (typing) { // 点击：直接显示完整
@@ -583,6 +589,9 @@
 
   /* ---------- 标题 ---------- */
   function showTitle() {
+    // 清空游戏进行状态，防止主界面点击误触发推进
+    curScene = null; curIdx = 0; curSceneId = null;
+    clearInterval(typeTimer); typing = false;
     setBg(getWallChoice());
     hideDialog(); hideQuote(); choicesEl.style.display = "none"; setSprite(null);
     $("title").style.display = "flex";
