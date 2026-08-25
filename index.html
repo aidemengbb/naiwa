@@ -95,6 +95,19 @@
     #menuBtns .tip { display: none; }
   }
 
+  /* 不支持毛玻璃的浏览器：降级为实色，保证文字正常显示 */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    #dialog { background: rgba(18, 22, 32, 0.9); }
+    #menuBtns .btn { background: rgba(246, 201, 107, 0.88); color: #3a2a10; text-shadow: none; }
+    #btnContinue, #btnChapters, #btnExtras { background: rgba(20, 24, 36, 0.88); color: #fff; }
+    #choices button { background: rgba(20, 22, 34, 0.92); }
+    #chapters, #extras { background: rgba(8, 8, 14, 0.95); }
+    #chapters .c-item, #extras .ex-item, #chapters .c-code input { background: rgba(255,255,255,0.12); }
+    .cf-box { background: rgba(22, 24, 36, 0.97); }
+    #end { background: rgba(5, 5, 10, 0.92); }
+    #title { background: rgba(6, 6, 12, 0.5); }
+  }
+
   /* 章节选择（毛玻璃整页） */
   #chapters {
     position: absolute; inset: 0; z-index: 12; display: none; flex-direction: column;
