@@ -319,7 +319,10 @@
   }
   function getUnlocks() { try { return JSON.parse(localStorage.getItem(UNLOCK_KEY) || "{}"); } catch (e) { return {}; } }
   function saveUnlocks(u) { try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(u)); } catch (e) {} }
-  function isUnlocked(id) { return !!getUnlocks()[id]; }
+  function isUnlocked(id) {
+    if (getUnlocks()[id]) return true;
+    return id === CHAPTER_KEYS[0];   // 第一章永远默认解锁
+  }
   function unlockChapter(id) { var u = getUnlocks(); u[id] = true; saveUnlocks(u); }
   function unlockNextChapter() {
     if (mode !== "chapter") return null;
