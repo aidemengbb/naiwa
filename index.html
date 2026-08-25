@@ -102,7 +102,7 @@
   .compat .ic { display: none; }
   .compat #dialog { background: rgba(18, 22, 32, 0.95); }
   .compat #choices button { background: rgba(30, 34, 46, 0.95); }
-  .compat #chapters, .compat #extras { background: rgba(8, 8, 14, 0.97); }
+  .compat #chapters, .compat #extras, #walls { background: rgba(8, 8, 14, 0.97); }
   .compat .cf-box { background: rgba(22, 24, 36, 0.98); }
   .compat #end { background: rgba(5, 5, 10, 0.95); }
   .compat #title { background: rgba(6, 6, 12, 0.55); }
@@ -113,7 +113,7 @@
     #menuBtns .btn { background: rgba(246, 201, 107, 0.88); color: #3a2a10; text-shadow: none; }
     #btnContinue, #btnChapters, #btnExtras { background: rgba(20, 24, 36, 0.88); color: #fff; }
     #choices button { background: rgba(20, 22, 34, 0.92); }
-    #chapters, #extras { background: rgba(8, 8, 14, 0.95); }
+    #chapters, #extras, #walls { background: rgba(8, 8, 14, 0.95); }
     #chapters .c-item, #extras .ex-item, #chapters .c-code input { background: rgba(255,255,255,0.12); }
     .cf-box { background: rgba(22, 24, 36, 0.97); }
     #end { background: rgba(5, 5, 10, 0.92); }
@@ -167,22 +167,22 @@
   #cfNo { background: rgba(255,255,255,0.15); color: #fff; }
 
   /* 杂项（毛玻璃整页） */
-  #extras {
+  #extras, #walls {
     position: absolute; inset: 0; z-index: 12; display: none; flex-direction: column;
     background: rgba(8, 8, 14, 0.72); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
     padding: 8vh 8% 4vh;
   }
-  #extras .c-title { font-size: 20px; letter-spacing: 4px; color: #ffe9b8; text-align: center; margin-bottom: 20px; }
-  #extras .c-list { flex: 1; overflow-y: auto; }
-  #extras .ex-item {
+  #extras .c-title, #walls .c-title { font-size: 20px; letter-spacing: 4px; color: #ffe9b8; text-align: center; margin-bottom: 20px; }
+  #extras .c-list, #walls .c-list { flex: 1; overflow-y: auto; }
+  #extras .ex-item, #walls .ex-item {
     display: flex; align-items: center; gap: 14px; width: 100%; margin: 10px 0;
     padding: 12px 16px; text-align: left; font-size: 16px; letter-spacing: 1px;
     border-radius: 14px; cursor: pointer; background: rgba(255,255,255,0.12);
     color: #fff; border: 1px solid rgba(255,255,255,0.2);
     backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   }
-  #extras .ex-item img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; flex: none; }
-  #extras .c-back { margin-top: 14px; padding: 12px; font-size: 15px; border: none; border-radius: 10px; background: rgba(255,255,255,0.12); color: #fff; cursor: pointer; }
+  #extras .ex-item img, #walls .ex-item img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; flex: none; }
+  #extras .c-back, #walls .c-back { margin-top: 14px; padding: 12px; font-size: 15px; border: none; border-radius: 10px; background: rgba(255,255,255,0.12); color: #fff; cursor: pointer; }
 
   /* 游戏内退出按钮 */
   #quitBtn {
@@ -224,6 +224,7 @@
       <button class="btn" id="btnContinue" style="display:none">继续游戏</button>
       <button class="btn" id="btnChapters"><span class="ic">📚</span> 章节</button>
       <button class="btn" id="btnExtras"><span class="ic">🎲</span> 杂项</button>
+      <button class="btn" id="btnWalls"><span class="ic">🖼</span> 壁纸</button>
       <div class="tip">建议竖屏全屏游玩 · 请佩戴耳机<br>本故事纯属虚构，如有雷同，都是小时候的事</div>
     </div>
   </div>
@@ -241,6 +242,11 @@
     <div class="c-title">🎲 杂项</div>
     <div class="c-list" id="extraList"></div>
     <button class="c-back" id="extraBack">← 返回主菜单</button>
+  </div>
+  <div id="walls">
+    <div class="c-title">🖼 壁纸</div>
+    <div class="c-list" id="wallList"></div>
+    <button class="c-back" id="wallBack">← 返回主菜单</button>
   </div>
   <button id="quitBtn" title="退出并保存">✕</button>
   <div id="confirmBox">
@@ -317,6 +323,19 @@
       if (!isUnlocked(nxt)) { unlockChapter(nxt); return nxt; }
     }
     return null;
+  }
+
+  /* ---------- 壁纸系统 ---------- */
+  var WALL_KEY = "naigua_walls_v1";
+  var WALL_CHOICE_KEY = "naigua_wall_choice_v1";
+  function getWalls() { try { return JSON.parse(localStorage.getItem(WALL_KEY) || "[]"); } catch (e) { return []; } }
+  function saveWalls(w) { try { localStorage.setItem(WALL_KEY, JSON.stringify(w)); } catch (e) {} }
+  function getWallChoice() { try { return localStorage.getItem(WALL_CHOICE_KEY) || "bg_title"; } catch (e) { return "bg_title"; } }
+  function setWallChoice(bg) { try { localStorage.setItem(WALL_CHOICE_KEY, bg); } catch (e) {} }
+  function unlockWallpaper(bg) {
+    if (!bg) return;
+    var w = getWalls();
+    if (w.indexOf(bg) < 0) { w.push(bg); saveWalls(w); }
   }
 
   /* ---------- 预加载 ---------- */
@@ -526,6 +545,8 @@
     $("quitBtn").style.display = "none";
     var cfg = ENDINGS[kind] || { t: kind + " · 完", d: "" };
     var unlocked = unlockNextChapter();   // 仅章节模式会解锁下一章
+    var wp = mode === "chapter" ? curChapter().wallpaper : null;
+    if (wp) unlockWallpaper(wp);
     var e = $("end");
     e.style.display = "flex";
     e.innerHTML = "";
@@ -534,7 +555,10 @@
     t.textContent = cfg.t;
     var d = document.createElement("div");
     d.className = "e2";
-    d.textContent = cfg.d + (unlocked ? "\n\n🎉 “" + CHAPTERS[unlocked].title + "”已解锁！去章节里看看吧" : "") + "\n\n（重新开始，试试别的选择）";
+    d.textContent = cfg.d
+      + (unlocked ? "\n\n🎉 “" + CHAPTERS[unlocked].title + "”已解锁！去章节里看看吧" : "")
+      + (wp ? "\n\n🖼 新壁纸解锁了！去主菜单【壁纸】里换背景吧" : "")
+      + "\n\n（重新开始，试试别的选择）";
     var b = document.createElement("button");
     b.className = "btn";
     b.textContent = "回到主菜单";
@@ -553,11 +577,12 @@
 
   /* ---------- 标题 ---------- */
   function showTitle() {
-    setBg("bg_title");
+    setBg(getWallChoice());
     hideDialog(); hideQuote(); choicesEl.style.display = "none"; setSprite(null);
     $("title").style.display = "flex";
     $("chapters").style.display = "none";
     $("extras").style.display = "none";
+    $("walls").style.display = "none";
     $("quitBtn").style.display = "none";
     $("end").style.display = "none";
     $("confirmBox").classList.remove("on");
@@ -566,6 +591,40 @@
     var s = loadSave();
     $("btnContinue").style.display = s ? "block" : "none";
   }
+
+  /* ---------- 壁纸管理 ---------- */
+  function renderWalls() {
+    var list = $("wallList");
+    list.innerHTML = "";
+    var walls = getWalls();
+    var choice = getWallChoice();
+    var items = [{ bg: "bg_title", label: "默认壁纸（初始）" }];
+    CHAPTER_KEYS.forEach(function (cid) {
+      var wp = CHAPTERS[cid].wallpaper;
+      if (wp && walls.indexOf(wp) >= 0) items.push({ bg: wp, label: "章节奖励 · " + (CHAPTERS[cid].title || cid) });
+    });
+    items.forEach(function (it) {
+      var b = document.createElement("button");
+      b.className = "ex-item";
+      var img = document.createElement("img");
+      img.src = resolve(assetPath(it.bg));
+      var t = document.createElement("span");
+      t.textContent = it.label + (it.bg === choice ? "  ✓ 使用中" : "");
+      b.appendChild(img); b.appendChild(t);
+      b.addEventListener("click", function () {
+        setWallChoice(it.bg);
+        setBg(it.bg);
+        renderWalls();
+      });
+      list.appendChild(b);
+    });
+  }
+  $("btnWalls").addEventListener("click", function () {
+    $("title").style.display = "none";
+    renderWalls();
+    $("walls").style.display = "flex";
+  });
+  $("wallBack").addEventListener("click", function () { $("walls").style.display = "none"; showTitle(); });
 
   /* ---------- 章节选择 ---------- */
   function renderChapters() {
@@ -719,6 +778,12 @@
       $("title").style.display = "none";
       renderExtras();
       $("extras").style.display = "flex";
+      return;
+    }
+    if (location.hash.indexOf("walls") >= 0) {
+      $("title").style.display = "none";
+      renderWalls();
+      $("walls").style.display = "flex";
       return;
     }
     var m = location.hash.match(/scene=([a-z0-9_]+)(?:&node=(\d+))?/);
