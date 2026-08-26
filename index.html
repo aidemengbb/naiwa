@@ -409,7 +409,8 @@
     var file = null;
     if (mode === "extra") file = (EXTRAS[extraId] || {}).music || "";
     else file = curChapter().music || "";
-    playMusic(file || "bgm_pond.mp3");   // 章节没传音乐 → 默认曲（无文件则静音）
+    if (file) playMusic(file);
+    else stopMusic();   // 章节没传专属音乐 → 不播音乐
   }
   $("musicBtn").addEventListener("click", function (ev) {
     ev.stopPropagation();
