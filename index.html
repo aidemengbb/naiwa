@@ -468,8 +468,12 @@
     if (CHAPTER_KEYS.length) collectScenes(CHAPTERS[CHAPTER_KEYS[0]].scenes);
   })();
 
-  /* ---------- 音乐系统（每章一个，左上角开关） ---------- */
-  var music = null;
+  /* ---------- 音乐系统（Web Audio 播放，与语音可同时响） ---------- */
+  var music = null;            // 兜底：无 AudioContext 时用 HTMLAudioElement
+  var musicCtx = null;
+  var musicBuffer = null;
+  var musicSource = null;
+  var musicFile = null;
   var MUSIC_KEY = "naigua_music_on_v1";
   function isMusicOn() { try { var v = localStorage.getItem(MUSIC_KEY); return v === null ? true : v === "1"; } catch (e) { return true; } }
   function setMusicOn(on) { try { localStorage.setItem(MUSIC_KEY, on ? "1" : "0"); } catch (e) {} }
@@ -478,19 +482,56 @@
     $("musicBtn").textContent = on ? "♪" : "×";
     $("musicBtn").title = on ? "音乐开，点击关闭" : "音乐关，点击开启";
   }
+  function initMusicCtx() {
+    if (!musicCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) musicCtx = new AC();
+    }
+    return musicCtx;
+  }
+  function startMusicSource() {
+    if (!musicCtx || !musicBuffer) return;
+    if (musicSource) { try { musicSource.stop(); } catch (e) {} musicSource = null; }
+    musicSource = musicCtx.createBufferSource();
+    musicSource.buffer = musicBuffer;
+    musicSource.loop = true;
+    musicSource.connect(musicCtx.destination);
+    musicSource.start();
+  }
   function playMusic(file) {
     if (!file) return;
-    if (!music) { music = new Audio(); music.loop = true; music.volume = 0.5; }
-    var src = "assets/audio/" + file;
-    if (music.getAttribute("data-src") === src) {
-      if (isMusicOn() && music.paused) music.play().catch(function () {});
+    if (file === musicFile && (musicSource || (music && !music.paused))) {
+      if (isMusicOn()) { if (musicCtx) musicCtx.resume().catch(function () {}); else if (music && music.paused) music.play().catch(function () {}); }
       return;
     }
-    music.setAttribute("data-src", src);
-    music.src = resolve(src);
-    if (isMusicOn()) music.play().catch(function () {});
+    musicFile = file;
+    stopMusic();
+    if (initMusicCtx()) {
+      var req = new XMLHttpRequest();
+      req.open("GET", resolve("assets/audio/" + file), true);
+      req.responseType = "arraybuffer";
+      req.onload = function () {
+        if (musicFile !== file || !musicCtx) return;
+        musicCtx.decodeAudioData(req.response, function (buf) {
+          if (musicFile !== file) return;
+          musicBuffer = buf;
+          if (isMusicOn()) { musicCtx.resume().catch(function () {}); startMusicSource(); }
+        }, function () {});
+      };
+      req.onerror = function () {};
+      req.send();
+    } else if (window.Audio) {
+      if (!music) { music = new Audio(); music.loop = true; music.volume = 0.5; }
+      music.src = resolve("assets/audio/" + file);
+      if (isMusicOn()) music.play().catch(function () {});
+    }
   }
-  function stopMusic() { if (music) music.pause(); }
+  function stopMusic() {
+    musicFile = null;
+    if (musicSource) { try { musicSource.stop(); } catch (e) {} musicSource = null; }
+    musicBuffer = null;
+    if (music) { music.pause(); }
+  }
   function playChapterMusic() {
     var file = null;
     if (mode === "extra") file = (EXTRAS[extraId] || {}).music || "";
@@ -502,13 +543,14 @@
     ev.stopPropagation();
     var on = !isMusicOn();
     setMusicOn(on);
-    if (on) { if (music) music.play().catch(function () {}); }
-    else { if (music) music.pause(); }
-    // 注册 Service Worker：首次访问自动缓存，之后秒开/离线可玩
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch(function () {});
-  }
-  updateMusicBtn();
+    if (on) {
+      if (musicCtx) { musicCtx.resume().catch(function () {}); startMusicSource(); }
+      else if (music) music.play().catch(function () {});
+    } else {
+      if (musicCtx) musicCtx.suspend().catch(function () {});
+      else if (music) music.pause();
+    }
+    updateMusicBtn();
   });
 
   /* ---------- 配音（可选，放入 assets/voice/ 即自动播放） ---------- */
