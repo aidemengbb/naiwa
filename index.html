@@ -385,14 +385,23 @@
         if (n.voice) tasks.push({ t: "aud", src: resolve("assets/voice/" + (n.voice.indexOf(".") >= 0 ? n.voice : n.voice + ".mp3")) });
       });
     });
-    if (ch.music) tasks.push({ t: "aud", src: resolve("assets/audio/" + ch.music) });
+    // 音乐不阻塞载入：进入后由 playMusic 后台加载
     if (!tasks.length) { cb(); return; }
-    var done = 0;
+    var done = 0, finished = false;
+    function finish() {
+      if (finished) return;
+      finished = true;
+      clearTimeout(guard);
+      updateLoading(100);
+      setTimeout(cb, 100);
+    }
     function tick() {
       done++;
       updateLoading(Math.min(99, Math.round(done / tasks.length * 100)));
-      if (done >= tasks.length) { updateLoading(100); setTimeout(cb, 120); }
+      if (done >= tasks.length) finish();
     }
+    // 超时兜底：8 秒后强制进入，未完成的继续后台加载
+    var guard = setTimeout(finish, 8000);
     tasks.forEach(function (task) {
       if (task.t === "img") {
         var img = IMG_CACHE[task.src];
