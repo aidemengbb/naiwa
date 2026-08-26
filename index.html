@@ -499,7 +499,11 @@
     setMusicOn(on);
     if (on) { if (music) music.play().catch(function () {}); }
     else { if (music) music.pause(); }
-    updateMusicBtn();
+    // 注册 Service Worker：首次访问自动缓存，之后秒开/离线可玩
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+  updateMusicBtn();
   });
 
   /* ---------- 配音（可选，放入 assets/voice/ 即自动播放） ---------- */
