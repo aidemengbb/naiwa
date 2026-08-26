@@ -883,8 +883,8 @@
     }
   }
 
-  //   // 百度/荣耀/华为等国产内核：启用兼容模式
-  if (/baiduboxapp|hihonor|MQQBrowser|Baidu|baidubrowser|hb_|Honor|HONOR|hw_|HuaweiBrowser|UCBrowser|Quark|MiuiBrowser/i.test(navigator.userAgent)) {
+  //   // 仅百度系浏览器（荣耀浏览器=百度内核）启用兼容模式；其他浏览器保持毛玻璃
+  if (/baiduboxapp|hihonor\.baidu|Baidu|baidubrowser|baidubox/i.test(navigator.userAgent)) {
     document.documentElement.classList.add("compat");
   }
 
