@@ -292,6 +292,7 @@
   var IMG_CACHE = {};
   var curScene = null, curIdx = 0, typing = false, typeTimer = null, typeFull = false;
   var inChoice = false, ended = false;
+  var waitingVoice = false;   // 配音播放中：强制停留，点击=跳过配音
   var flags = {};   // 剧情变量：选择影响结局
 
   /* 条件与变量 */
@@ -425,7 +426,9 @@
     if (voice) { voice.pause(); voice.currentTime = 0; }
     var src = file.indexOf(".") >= 0 ? file : file + ".mp3";
     voice = new Audio(resolve("assets/voice/" + src));
-    voice.play().catch(function () {});
+    voice.onended = function () { waitingVoice = false; };   // 配音播完：解除停留
+    voice.onerror = function () { waitingVoice = false; };   // 播放失败：不卡住
+    voice.play().catch(function () { waitingVoice = false; });
   }
 
   /* ---------- 工具 ---------- */
@@ -544,6 +547,7 @@
     if (!curScene.length) curScene = raw;
     curIdx = 0;
     ended = false;
+    waitingVoice = false;
     hideQuote(); hideDialog(); choicesEl.style.display = "none"; setSprite(null);
     $("quitBtn").style.display = "flex";
     $("musicBtn").style.display = "flex";
@@ -567,11 +571,11 @@
     }
     if (node.quote) {
       dialog.classList.remove("on");
-      showQuote(node.quote, function () {});
+      showQuote(node.quote, function () { if (node.voice) waitingVoice = true; });
     } else {
       hideQuote();
       showDialog(node);
-      typeText(node.text || "", node);
+      typeText(node.text || "", node, function () { if (node.voice) waitingVoice = true; });
     }
     save();
   }
@@ -590,7 +594,12 @@
       clearInterval(typeTimer); typing = false; typeFull = true;
       if (node.quote) quote.firstChild.textContent = node.quote;
       else textEl.textContent = node.text;
+      if (node.voice) waitingVoice = true;
       return;
+    }
+    if (waitingVoice) { // 配音还在播：点击 = 跳过配音，进入下一句
+      waitingVoice = false;
+      if (voice) { voice.pause(); voice.currentTime = 0; }
     }
     curIdx += 1;
     var next = curScene[curIdx];
