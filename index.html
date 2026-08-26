@@ -705,6 +705,7 @@
   function showEnd(kind) {
     ended = true;
     $("quitBtn").style.display = "none";
+    $("musicBtn").style.display = "none";
     var cfg = ENDINGS[kind] || { t: kind + " · 完", d: "" };
     var unlocked = unlockNextChapter();   // 仅章节模式会解锁下一章
     var wp = mode === "chapter" ? curChapter().wallpaper : null;
@@ -753,7 +754,13 @@
     $("end").style.display = "none";
     stopMusic();
     $("confirmBox").classList.remove("on");
-    var ch = CHAPTERS[chapterId || CHAPTER_KEYS[0]];
+    // 副标题显示"最新可玩章节"
+    var latest = CHAPTER_KEYS[0];
+    for (var i = 0; i < CHAPTER_KEYS.length; i++) {
+      if (isUnlocked(CHAPTER_KEYS[i])) latest = CHAPTER_KEYS[i];
+      else break;
+    }
+    var ch = CHAPTERS[latest] || CHAPTERS[chapterId || CHAPTER_KEYS[0]];
     if (ch) $("title").querySelector(".t2").textContent = ch.title;
     var s = loadSave();
     $("btnContinue").style.display = s ? "block" : "none";
@@ -874,6 +881,15 @@
   $("btnContinue").addEventListener("click", function () {
     var s = loadSave();
     if (!s) return;
+    // 存档无效（场景被作者删改）：清理并回主界面
+    var valid = false;
+    if (s.c && s.c.indexOf("extra:") === 0) {
+      var eid = s.c.slice(6);
+      if (EXTRAS[eid] && EXTRAS[eid].scenes && EXTRAS[eid].scenes[s.s]) valid = true;
+    } else if (s.c && CHAPTERS[s.c] && CHAPTERS[s.c].scenes[s.s]) {
+      valid = true;
+    }
+    if (!valid) { clearSave(); showTitle(); return; }
     var ok = false;
     if (s.c && s.c.indexOf("extra:") === 0) {
       var eid = s.c.slice(6);
