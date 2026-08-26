@@ -863,7 +863,11 @@
   $("btnStart").addEventListener("click", function () {
     $("title").style.display = "none";
     mode = "chapter";
+    // 进入已解锁的最新章节（第一章永远解锁兜底）
     chapterId = CHAPTER_KEYS[0];
+    for (var i = CHAPTER_KEYS.length - 1; i >= 0; i--) {
+      if (isUnlocked(CHAPTER_KEYS[i])) { chapterId = CHAPTER_KEYS[i]; break; }
+    }
     flags = {};
     enterChapter(function () {
       playChapterMusic();
