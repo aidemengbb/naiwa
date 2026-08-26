@@ -527,7 +527,7 @@
     }
   }
   function stopMusic() {
-    musicFile = null;
+    // 只停播放，不清 musicFile（文件状态由 playMusic 管理）
     if (musicSource) { try { musicSource.stop(); } catch (e) {} musicSource = null; }
     musicBuffer = null;
     if (music) { music.pause(); }
