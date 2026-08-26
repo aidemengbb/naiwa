@@ -61,6 +61,14 @@
   }
   #choices button:active { background: rgba(246, 201, 107, 0.3); border-color: rgba(246, 201, 107, 0.6); }
 
+  /* 主界面左上角制作信息 */
+  #logo {
+    position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: 12px;
+    display: flex; align-items: center; gap: 8px; z-index: 11;
+  }
+  #logo img { width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); object-fit: cover; }
+  #logo span { font-size: 12px; color: rgba(255,255,255,0.85); letter-spacing: 2px; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+
   /* 标题画面 */
   #title {
     position: absolute; inset: 0; z-index: 10; display: none; flex-direction: column;
@@ -246,6 +254,7 @@
   </div>
   <div id="choices"></div>
   <div id="title">
+    <div id="logo"><img src="assets/bg/logo.png" alt=""><span>守旧制作</span></div>
     <div class="t1">蛙之港湾</div>
     <div class="t2">第一章 · 小卖部</div>
     <div id="menuBtns">
