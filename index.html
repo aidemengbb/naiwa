@@ -446,6 +446,7 @@
   /* ---------- 预加载 ---------- */
   function preload(src) { if (!src || IMG_CACHE[src]) return; IMG_CACHE[src] = new Image(); IMG_CACHE[src].src = resolve(src); }
   function assetPath(name) { return (name.indexOf("/") >= 0 ? "assets/" + name : "assets/bg/" + name) + ".jpg"; }
+  // 只预加载第一章（其他章节进入时由 preloadChapter 按需加载，章节再多也不拖慢首屏）
   (function collect() {
     function collectScenes(scenes) {
       Object.keys(scenes).forEach(function (k) {
@@ -455,12 +456,7 @@
         });
       });
     }
-    CHAPTER_KEYS.forEach(function (cid) { collectScenes(CHAPTERS[cid].scenes); });
-    EXTRA_KEYS.forEach(function (eid) {
-      var ex = EXTRAS[eid];
-      if (ex.cover && ex.cover.indexOf("/") >= 0) preload(assetPath(ex.cover));
-      collectScenes(ex.scenes || {});
-    });
+    if (CHAPTER_KEYS.length) collectScenes(CHAPTERS[CHAPTER_KEYS[0]].scenes);
   })();
 
   /* ---------- 音乐系统（每章一个，左上角开关） ---------- */
