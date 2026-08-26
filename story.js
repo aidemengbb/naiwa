@@ -96,31 +96,26 @@ const CHAPTERS = {
     }
   },
   "ch2": {
-    title: "测试",
-    code: "NG-8QAM-CGAU",
+    title: "第二章-测试",
+    code: "NG-TYGG-JV5W",
     start: "scene1",
+    music: "ch2_bgm.m4a",
+    wallpaper: "wall_ch2",
     scenes: {
       scene1: [
-        { bg: "cg/test_s1", choice: [{"text": "你好测试", "goto": "scene2"}] }
+        { bg: "cg/t2_s1", text: "测试下宝宝们", choice: [{"text": "跳②", "goto": "scene2"}] }
       ],
       scene2: [
-        { bg: "cg/test_s2", text: "测试0", voice: "test_v0.mp3" },
-        { text: "测试1", voice: "test_v1.mp3" },
-        { name: "收旧", text: "测试3", next: "scene3" }
+        { bg: "cg/t2_s2", text: "测试 转下", next: "scene3" }
       ],
       scene3: [
-        { bg: "cg/test_s3", next: "scene4" }
+        { bg: "cg/t2_s3", text: "奶龙乖—提示音", voice: "t2_v0.mp3", choice: [{"text": "跳头", "goto": "scene1"}, {"text": "下一", "goto": "scene4"}] }
       ],
       scene4: [
-        { next: "scene5" }
-      ],
-      scene5: [
-        { bg: "cg/test_s4", text: "测试0" },
-        { text: "测试1", end: "测试结束" }
+        { bg: "cg/t2_s4", text: "叮咚", voice: "t2_v1.mp3", end: "测试结束" }
       ]
     }
-  }
-};
+  }};
 // ============================================================
 // 杂项（🎲 随意小故事，不设解锁，直接可玩）
 // 每项：{ title: 故事名, cover: 封面图, start: 起始场景, scenes: {...} }
