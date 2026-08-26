@@ -190,6 +190,18 @@
   #extras .ex-item img, #walls .ex-item img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; flex: none; }
   #extras .c-back, #walls .c-back { margin-top: 14px; padding: 12px; font-size: 15px; border: none; border-radius: 10px; background: rgba(255,255,255,0.12); color: #fff; cursor: pointer; }
 
+  /* 加载界面 */
+  #loading {
+    position: absolute; inset: 0; z-index: 30; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(8, 8, 14, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  #loading.on { display: flex; }
+  .ld-text { font-size: 16px; letter-spacing: 3px; color: #ffe9b8; margin-bottom: 18px; }
+  .ld-bar { width: 70%; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.15); overflow: hidden; }
+  .ld-fill { height: 100%; width: 0%; border-radius: 4px; background: #f6c96b; transition: width 0.2s; }
+  .ld-pct { margin-top: 12px; font-size: 13px; color: rgba(255,255,255,0.7); }
+
   /* 游戏内音乐开关（左上角） */
   #musicBtn {
     position: absolute; top: 18px; left: 12px; z-index: 7;
@@ -268,6 +280,11 @@
   </div>
   <button id="musicBtn" title="音乐">♪</button>
   <button id="quitBtn" title="退出并保存">✕</button>
+  <div id="loading">
+    <div class="ld-text">正在加载…</div>
+    <div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div>
+    <div class="ld-pct" id="ldPct">0%</div>
+  </div>
   <div id="confirmBox">
     <div class="cf-box">
       <div class="cf-text">确定退出吗？<br><span>进度会自动保存</span></div>
@@ -347,6 +364,54 @@
       if (!isUnlocked(nxt)) { unlockChapter(nxt); return nxt; }
     }
     return null;
+  }
+
+  /* ---------- 章节预加载 + 载入界面 ---------- */
+  function updateLoading(pct) {
+    $("ldFill").style.width = pct + "%";
+    $("ldPct").textContent = pct + "%";
+  }
+  function showLoading() { $("loading").classList.add("on"); updateLoading(0); }
+  function hideLoading() { $("loading").classList.remove("on"); }
+
+  function preloadChapter(cb) {
+    var ch = mode === "extra" ? (EXTRAS[extraId] || {}) : curChapter();
+    var scenes = ch.scenes || {};
+    var tasks = [];
+    Object.keys(scenes).forEach(function (k) {
+      scenes[k].forEach(function (n) {
+        if (n.bg) tasks.push({ t: "img", src: resolve(assetPath(n.bg)) });
+        if (n.char) tasks.push({ t: "img", src: resolve("assets/sprites/" + n.char + "_" + n.expr + ".png") });
+        if (n.voice) tasks.push({ t: "aud", src: resolve("assets/voice/" + (n.voice.indexOf(".") >= 0 ? n.voice : n.voice + ".mp3")) });
+      });
+    });
+    if (ch.music) tasks.push({ t: "aud", src: resolve("assets/audio/" + ch.music) });
+    if (!tasks.length) { cb(); return; }
+    var done = 0;
+    function tick() {
+      done++;
+      updateLoading(Math.min(99, Math.round(done / tasks.length * 100)));
+      if (done >= tasks.length) { updateLoading(100); setTimeout(cb, 120); }
+    }
+    tasks.forEach(function (task) {
+      if (task.t === "img") {
+        var img = IMG_CACHE[task.src];
+        if (img && img.complete) { tick(); return; }
+        if (!img) { img = IMG_CACHE[task.src] = new Image(); img.src = task.src; }
+        img.onload = tick; img.onerror = tick;
+      } else {
+        var a = new Audio(task.src);
+        a.preload = "auto";
+        a.addEventListener("canplaythrough", tick, { once: true });
+        a.addEventListener("error", tick, { once: true });
+        a.load();
+      }
+    });
+  }
+
+  function enterChapter(afterLoad) {
+    showLoading();
+    preloadChapter(function () { hideLoading(); afterLoad(); });
   }
 
   /* ---------- 壁纸系统 ---------- */
@@ -729,11 +794,13 @@
         if (!isUnlocked(cid)) { $("chapterMsg").textContent = "🔒 这个章节还没解锁，输入章节码试试"; return; }
         $("chapters").style.display = "none";
         $("title").style.display = "none";
-        playChapterMusic();
         mode = "chapter";
         chapterId = cid;
         flags = {};
-        loadScene(ch.start);
+        enterChapter(function () {
+          playChapterMusic();
+          loadScene(ch.start);
+        });
       });
       list.appendChild(b);
     });
@@ -763,9 +830,11 @@
       b.addEventListener("click", function () {
         $("extras").style.display = "none";
         $("title").style.display = "none";
-        playChapterMusic();
         mode = "extra"; extraId = eid; flags = {};
-        loadScene(curStart());
+        enterChapter(function () {
+          playChapterMusic();
+          loadScene(curStart());
+        });
       });
       list.appendChild(b);
     });
@@ -773,11 +842,13 @@
 
   $("btnStart").addEventListener("click", function () {
     $("title").style.display = "none";
-    playChapterMusic();
     mode = "chapter";
     chapterId = CHAPTER_KEYS[0];
     flags = {};
-    loadScene(curChapter().start);
+    enterChapter(function () {
+      playChapterMusic();
+      loadScene(curChapter().start);
+    });
   });
   $("btnContinue").addEventListener("click", function () {
     var s = loadSave();
@@ -793,12 +864,14 @@
     }
     if (ok) {
       $("title").style.display = "none";
-      playChapterMusic();
       flags = s.f || {};
-      loadScene(s.s);
-      curIdx = Math.min(s.i, curScene.length - 1);
-      ended = false; hideQuote();
-      render();
+      enterChapter(function () {
+        playChapterMusic();
+        loadScene(s.s);
+        curIdx = Math.min(s.i, curScene.length - 1);
+        ended = false; hideQuote();
+        render();
+      });
     }
   });
   $("btnChapters").addEventListener("click", function () {
