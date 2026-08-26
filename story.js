@@ -99,7 +99,7 @@ const CHAPTERS = {
     title: "第二章-测试",
     code: "NG-TYGG-JV5W",
     start: "scene1",
-    music: "ch2_bgm.m4a",
+    music: "ch2_bgm.mp3",
     wallpaper: "wall_ch2",
     scenes: {
       scene1: [

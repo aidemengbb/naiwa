@@ -409,11 +409,16 @@
         if (!img) { img = IMG_CACHE[task.src] = new Image(); img.src = task.src; }
         img.onload = tick; img.onerror = tick;
       } else {
+        // 音频：loadeddata/canplaythrough/error 任一触发即算完成 + 5秒兜底
         var a = new Audio(task.src);
         a.preload = "auto";
-        a.addEventListener("canplaythrough", tick, { once: true });
-        a.addEventListener("error", tick, { once: true });
+        var doneOnce = false;
+        var atick = function () { if (!doneOnce) { doneOnce = true; tick(); } };
+        a.addEventListener("loadeddata", atick, { once: true });
+        a.addEventListener("canplaythrough", atick, { once: true });
+        a.addEventListener("error", atick, { once: true });
         a.load();
+        setTimeout(atick, 5000);
       }
     });
   }
