@@ -280,7 +280,7 @@
   </div>
   <button id="musicBtn" title="音乐">♪</button>
   <button id="quitBtn" title="退出并保存">✕</button>
-  <div id="loading">
+  <div id="loading" class="on">
     <div class="ld-text">正在加载…</div>
     <div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div>
     <div class="ld-pct" id="ldPct">0%</div>
@@ -976,8 +976,21 @@
   }
 
   updateMusicBtn();
-  showTitle();
-  parseHash();
+  // 进入主界面前：预加载第一章素材（点“开始”秒进）
+  var hashScene = location.hash.match(/scene=([a-z0-9_]+)/);
+  if (hashScene) {
+    showTitle();
+    parseHash();
+  } else {
+    showLoading();
+    mode = "chapter";
+    chapterId = CHAPTER_KEYS[0];
+    preloadChapter(function () {
+      hideLoading();
+      showTitle();
+      parseHash();
+    });
+  }
 })();
 </script>
 </body>
