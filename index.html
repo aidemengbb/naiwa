@@ -500,6 +500,7 @@
   var musicSource = null;
   var musicFile = null;
   var musicGain = null;        // 音乐音量调节节点（只控音乐，配音不受影响）
+  var pendingMusicResume = false;   // 音乐解码中：下次用户点击（手势）时恢复音频上下文
   var VOL_KEY = "naigua_vol_v1";
   function getVol() {
     try { var v = parseInt(localStorage.getItem(VOL_KEY), 10); if (isNaN(v) || v < 0 || v > 100) v = 50; return v; } catch (e) { return 50; }
@@ -550,6 +551,9 @@
     musicFile = file;
     stopMusic();
     if (initMusicCtx()) {
+      // 趁用户点击的手势窗口立即恢复音频上下文（解码是异步的，等解码完手势早过期了）
+      pendingMusicResume = true;
+      if (isMusicOn()) musicCtx.resume().catch(function () {});
       var req = new XMLHttpRequest();
       req.open("GET", resolve("assets/audio/" + file), true);
       req.responseType = "arraybuffer";
@@ -557,9 +561,18 @@
         if (musicFile !== file || !musicCtx) return;
         musicCtx.decodeAudioData(req.response, function (buf) {
           if (musicFile !== file) return;
+          pendingMusicResume = false;
           musicBuffer = buf;
           if (isMusicOn()) { musicCtx.resume().catch(function () {}); startMusicSource(); }
-        }, function () {});
+        }, function () {
+          // 解码失败（老内核兼容差）→ 降级为 HTMLAudioElement 播放
+          if (musicFile !== file) return;
+          pendingMusicResume = false;
+          if (!music) { music = new Audio(); music.loop = true; }
+          music.volume = getVol() / 100;
+          music.src = resolve("assets/audio/" + file);
+          if (isMusicOn()) music.play().catch(function () {});
+        });
       };
       req.onerror = function () {};
       req.send();
@@ -588,6 +601,8 @@
     ev.stopPropagation();
     var p = $("volPanel");
     if (p.style.display === "flex") { p.style.display = "none"; return; }
+    // 点音乐按钮（手势）也趁机恢复音频上下文
+    if (musicCtx && isMusicOn()) musicCtx.resume().catch(function () {});
     var v = getVol();
     $("volSlider").value = v;
     $("volVal").textContent = v + "%";
@@ -1080,6 +1095,8 @@
   document.body.addEventListener("click", function () {
     // 音量面板开着时：点击外部只收起面板，不推进剧情（防误触对白）
     if ($("volPanel").style.display === "flex") { $("volPanel").style.display = "none"; return; }
+    // 音乐解码中且用户有点击手势 → 趁机恢复音频上下文（手机浏览器必须手势内恢复）
+    if (pendingMusicResume && musicCtx && isMusicOn()) musicCtx.resume().catch(function () {});
     advance();
   });
 
