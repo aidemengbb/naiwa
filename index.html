@@ -595,13 +595,54 @@
     applyMusicVolume();
   });
 
-  /* ---------- 配音（可选，放入 assets/voice/ 即自动播放） ---------- */
-  var voice = null;
+  /* ---------- 配音（可选，放入 assets/voice/ 即自动播放） ----------
+     语音走 Web Audio 独立通道：与背景音乐（HTMLAudio）互不抢占，
+     避免部分手机浏览器"同一时间只允许一个音频出声"导致语音打断音乐 */
+  var voice = null;              // 兜底：无 AudioContext 时用 HTMLAudioElement
+  var voiceCtx = null;
+  var voiceGain = null;
+  var voiceSource = null;
+  function initVoiceCtx() {
+    if (!voiceCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        voiceCtx = new AC();
+        voiceGain = voiceCtx.createGain();
+        voiceGain.gain.value = 1;
+        voiceGain.connect(voiceCtx.destination);
+      }
+    }
+    return voiceCtx;
+  }
   function playVoice(file) {
     if (!file) return;
-    if (voice) { voice.pause(); voice.currentTime = 0; }
     var src = file.indexOf(".") >= 0 ? file : file + ".mp3";
-    voice = new Audio(resolve("assets/voice/" + src));
+    var url = resolve("assets/voice/" + src);
+    if (initVoiceCtx()) {
+      // Web Audio 播语音：新语音开播前停掉上一条
+      var req = new XMLHttpRequest();
+      req.open("GET", url, true);
+      req.responseType = "arraybuffer";
+      req.onload = function () {
+        if (!voiceCtx) return;
+        voiceCtx.decodeAudioData(req.response, function (buf) {
+          if (voiceSource) { try { voiceSource.stop(); } catch (e) {} }
+          voiceSource = voiceCtx.createBufferSource();
+          voiceSource.buffer = buf;
+          voiceSource.connect(voiceGain || voiceCtx.destination);
+          voiceCtx.resume().catch(function () {});
+          voiceSource.start();
+        }, function () { playVoiceHtml(url); });
+      };
+      req.onerror = function () { playVoiceHtml(url); };
+      req.send();
+    } else {
+      playVoiceHtml(url);
+    }
+  }
+  function playVoiceHtml(url) {
+    if (voice) { voice.pause(); voice.currentTime = 0; }
+    voice = new Audio(url);
     voice.addEventListener("error", function () {
       cdnFallback(voice);
       if (voice.src) voice.play().catch(function () {});
@@ -1069,6 +1110,8 @@
     if ($("title").style.display === "none" && music && music.src && isMusicOn() && music.paused && music.readyState >= 2) {
       music.play().catch(function () {});
     }
+    // 语音（Web Audio）同样需要手势内恢复
+    if (voiceCtx && voiceCtx.state !== "running") voiceCtx.resume().catch(function () {});
     advance();
   });
 
