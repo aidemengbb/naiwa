@@ -221,6 +221,26 @@
   }
   .compat #musicBtn { background: rgba(30, 34, 46, 0.95); }
 
+  /* 音乐音量面板（点 ♪ 弹出） */
+  #volPanel {
+    position: absolute; z-index: 8;
+    top: calc(70px + env(safe-area-inset-top, 0px)); left: 12px;
+    display: none; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 14px;
+    background: rgba(10, 10, 16, 0.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  #volPanel.on { display: flex; }
+  #volToggle {
+    padding: 6px 10px; font-size: 12px; color: #ffe9b8; white-space: nowrap;
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 10px; cursor: pointer;
+  }
+  #volSlider { width: 110px; height: 22px; accent-color: #f6c96b; }
+  #volVal { font-size: 12px; color: rgba(255,255,255,0.85); min-width: 30px; text-align: center; }
+  .compat #volPanel { background: rgba(30, 34, 46, 0.95); }
+  .compat #volToggle { background: rgba(246, 201, 107, 0.92); color: #3a2a10; }
+
   /* 游戏内退出按钮 */
   #quitBtn {
     position: absolute; top: 18px; right: 12px; z-index: 7;
@@ -289,6 +309,11 @@
     <button class="c-back" id="wallBack">← 返回主菜单</button>
   </div>
   <button id="musicBtn" title="音乐">♪</button>
+  <div id="volPanel">
+    <button id="volToggle">♪ 音乐开</button>
+    <input type="range" id="volSlider" min="0" max="100" step="1">
+    <span id="volVal">50%</span>
+  </div>
   <button id="quitBtn" title="退出并保存">✕</button>
   <div id="loading" class="on">
     <div class="ld-text">正在加载…</div>
@@ -474,18 +499,36 @@
   var musicBuffer = null;
   var musicSource = null;
   var musicFile = null;
+  var musicGain = null;        // 音乐音量调节节点（只控音乐，配音不受影响）
+  var VOL_KEY = "naigua_vol_v1";
+  function getVol() {
+    try { var v = parseInt(localStorage.getItem(VOL_KEY), 10); if (isNaN(v) || v < 0 || v > 100) v = 50; return v; } catch (e) { return 50; }
+  }
+  function setVol(v) { try { localStorage.setItem(VOL_KEY, String(v)); } catch (e) {} }
+  function applyMusicVolume() {
+    var v = getVol() / 100;
+    if (musicGain) musicGain.gain.value = v;
+    if (music) music.volume = v;
+  }
   var MUSIC_KEY = "naigua_music_on_v1";
   function isMusicOn() { try { var v = localStorage.getItem(MUSIC_KEY); return v === null ? true : v === "1"; } catch (e) { return true; } }
   function setMusicOn(on) { try { localStorage.setItem(MUSIC_KEY, on ? "1" : "0"); } catch (e) {} }
   function updateMusicBtn() {
     var on = isMusicOn();
     $("musicBtn").textContent = on ? "♪" : "×";
-    $("musicBtn").title = on ? "音乐开，点击关闭" : "音乐关，点击开启";
+    $("musicBtn").title = on ? "音乐开，点击调节" : "音乐关，点击开启";
+    var tg = $("volToggle");
+    if (tg) tg.textContent = on ? "♪ 音乐开" : "× 音乐关";
   }
   function initMusicCtx() {
     if (!musicCtx) {
       var AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) musicCtx = new AC();
+      if (AC) {
+        musicCtx = new AC();
+        musicGain = musicCtx.createGain();
+        musicGain.gain.value = getVol() / 100;
+        musicGain.connect(musicCtx.destination);
+      }
     }
     return musicCtx;
   }
@@ -495,7 +538,7 @@
     musicSource = musicCtx.createBufferSource();
     musicSource.buffer = musicBuffer;
     musicSource.loop = true;
-    musicSource.connect(musicCtx.destination);
+    musicSource.connect(musicGain || musicCtx.destination);
     musicSource.start();
   }
   function playMusic(file) {
@@ -521,7 +564,8 @@
       req.onerror = function () {};
       req.send();
     } else if (window.Audio) {
-      if (!music) { music = new Audio(); music.loop = true; music.volume = 0.5; }
+      if (!music) { music = new Audio(); music.loop = true; }
+      music.volume = getVol() / 100;
       music.src = resolve("assets/audio/" + file);
       if (isMusicOn()) music.play().catch(function () {});
     }
@@ -539,7 +583,19 @@
     if (file) playMusic(file);
     else stopMusic();   // 章节没传专属音乐 → 不播音乐
   }
+  /* 点 ♪ 弹出音量面板；面板内可开关音乐、拖动调音量 */
   $("musicBtn").addEventListener("click", function (ev) {
+    ev.stopPropagation();
+    var p = $("volPanel");
+    if (p.style.display === "flex") { p.style.display = "none"; return; }
+    var v = getVol();
+    $("volSlider").value = v;
+    $("volVal").textContent = v + "%";
+    updateMusicBtn();
+    p.style.display = "flex";
+  });
+  $("volPanel").addEventListener("click", function (ev) { ev.stopPropagation(); });
+  $("volToggle").addEventListener("click", function (ev) {
     ev.stopPropagation();
     var on = !isMusicOn();
     setMusicOn(on);
@@ -551,6 +607,12 @@
       else if (music) music.pause();
     }
     updateMusicBtn();
+  });
+  $("volSlider").addEventListener("input", function () {
+    var v = parseInt(this.value, 10) || 0;
+    setVol(v);
+    $("volVal").textContent = v + "%";
+    applyMusicVolume();
   });
 
   /* ---------- 配音（可选，放入 assets/voice/ 即自动播放） ---------- */
@@ -721,6 +783,7 @@
 
   function advance() {
     if (inChoice || ended) return;
+    if (!curScene) return;   // 场景未就绪（如按钮冒泡）时忽略点击
     // 主菜单/章节/杂项/壁纸/结局界面显示时，点击不推进游戏
     if ($("title").style.display !== "none") return;
     if ($("chapters").style.display !== "none") return;
@@ -757,6 +820,7 @@
     ended = true;
     $("quitBtn").style.display = "none";
     $("musicBtn").style.display = "none";
+    $("volPanel").style.display = "none";
     var cfg = ENDINGS[kind] || { t: kind + " · 完", d: "" };
     var unlocked = unlockNextChapter();   // 仅章节模式会解锁下一章
     var wp = mode === "chapter" ? curChapter().wallpaper : null;
@@ -802,6 +866,7 @@
     $("walls").style.display = "none";
     $("quitBtn").style.display = "none";
     $("musicBtn").style.display = "none";
+    $("volPanel").style.display = "none";
     $("end").style.display = "none";
     stopMusic();
     $("confirmBox").classList.remove("on");
@@ -995,6 +1060,7 @@
   $("quitBtn").addEventListener("click", function (ev) {
     ev.stopPropagation();
     if (ended) return;
+    $("volPanel").style.display = "none";
     $("confirmBox").classList.add("on");
   });
   $("cfYes").addEventListener("click", function (ev) {
@@ -1011,7 +1077,11 @@
   $("confirmBox").addEventListener("click", function (ev) { ev.stopPropagation(); });
 
   // 点击舞台推进（选项按钮已阻止冒泡）
-  document.body.addEventListener("click", advance);
+  document.body.addEventListener("click", function () {
+    // 音量面板开着时：点击外部只收起面板，不推进剧情（防误触对白）
+    if ($("volPanel").style.display === "flex") { $("volPanel").style.display = "none"; return; }
+    advance();
+  });
 
   // 调试：URL 带 #scene=xxx[&node=N] 直接进入指定场景/节点；#chapters 直达章节界面
   function parseHash() {

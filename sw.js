@@ -1,7 +1,7 @@
 // Service Worker：stale-while-revalidate
 // 先秒开返回本地缓存，同时后台拉取新版更新缓存——内容更新自动生效
 // 每次部署请更新 BUILD 标记（deploy 时自动写入日期版本）
-var BUILD = "naigua-20260826-1";
+var BUILD = "naigua-20260827-1";
 var CACHE = "naigua-sw";
 
 self.addEventListener("install", function (e) {
