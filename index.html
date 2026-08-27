@@ -367,7 +367,8 @@
   /* 单文件版：所有图片以 base64 内嵌；本地版为空则用相对路径 */
   var ASSET_MAP = {};
   // 文件夹版：素材优先走 jsDelivr 国内 CDN（快）；失败自动回退本地相对路径（GitHub Pages + SW 缓存）
-  var CDN_BASE = "https://cdn.jsdelivr.net/gh/aidemengbb/naiwa@main/";
+  // 注意：@后跟最新部署 commit，素材更新后必须同步更新这里（部署完取新 commit 号替换）
+  var CDN_BASE = "https://cdn.jsdelivr.net/gh/aidemengbb/naiwa@e1d7860/";
   function resolve(src) { return ASSET_MAP[src] || CDN_BASE + src; }
   function cdnFallback(el) {
     if (el.src && el.src.indexOf(CDN_BASE) === 0) {
