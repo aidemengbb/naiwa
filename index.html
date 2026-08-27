@@ -366,7 +366,17 @@
 
   /* 单文件版：所有图片以 base64 内嵌；本地版为空则用相对路径 */
   var ASSET_MAP = {};
-  function resolve(src) { return ASSET_MAP[src] || src; }
+  // 文件夹版：素材优先走 jsDelivr 国内 CDN（快）；失败自动回退本地相对路径（GitHub Pages + SW 缓存）
+  var CDN_BASE = "https://cdn.jsdelivr.net/gh/aidemengbb/naiwa@main/";
+  function resolve(src) { return ASSET_MAP[src] || CDN_BASE + src; }
+  function cdnFallback(el) {
+    if (el.src && el.src.indexOf(CDN_BASE) === 0) {
+      el.src = el.src.slice(CDN_BASE.length);
+    }
+  }
+  // 背景/立绘元素：CDN 挂了自动换回本地
+  bg.addEventListener("error", function () { cdnFallback(bg); });
+  sprite.addEventListener("error", function () { cdnFallback(sprite); });
 
   /* ---------- 章节系统 ---------- */
   var chapterId = null;
@@ -479,7 +489,12 @@
   }
 
   /* ---------- 预加载 ---------- */
-  function preload(src) { if (!src || IMG_CACHE[src]) return; IMG_CACHE[src] = new Image(); IMG_CACHE[src].src = resolve(src); }
+  function preload(src) {
+    if (!src || IMG_CACHE[src]) return;
+    var im = IMG_CACHE[src] = new Image();
+    im.onerror = function () { cdnFallback(im); };
+    im.src = resolve(src);
+  }
   function assetPath(name) { return (name.indexOf("/") >= 0 ? "assets/" + name : "assets/bg/" + name) + ".jpg"; }
   // 只预加载第一章（其他章节进入时由 preloadChapter 按需加载，章节再多也不拖慢首屏）
   (function collect() {
@@ -523,7 +538,14 @@
       return;
     }
     musicFile = file;
-    if (!music) { music = new Audio(); music.loop = true; }
+    if (!music) {
+      music = new Audio();
+      music.loop = true;
+      music.addEventListener("error", function () {
+        cdnFallback(music);
+        if (music.src && isMusicOn()) music.play().catch(function () {});
+      });
+    }
     music.volume = getVol() / 100;
     music.src = resolve("assets/audio/" + file);   // 流式：下载到能播的部分就出声
     if (isMusicOn()) music.play().catch(function () {});
@@ -579,6 +601,10 @@
     if (voice) { voice.pause(); voice.currentTime = 0; }
     var src = file.indexOf(".") >= 0 ? file : file + ".mp3";
     voice = new Audio(resolve("assets/voice/" + src));
+    voice.addEventListener("error", function () {
+      cdnFallback(voice);
+      if (voice.src) voice.play().catch(function () {});
+    });
     voice.play().catch(function () {});
   }
 
@@ -855,6 +881,7 @@
       b.className = "ex-item";
       var img = document.createElement("img");
       img.src = resolve(assetPath(it.bg));
+      img.onerror = function () { cdnFallback(img); };
       var t = document.createElement("span");
       t.textContent = it.label + (it.bg === choice ? "  ✓ 使用中" : "");
       b.appendChild(img); b.appendChild(t);
@@ -918,7 +945,7 @@
       var b = document.createElement("button");
       b.className = "ex-item";
       var img = document.createElement("img");
-      if (ex.cover && ex.cover.indexOf("/") >= 0) img.src = resolve(assetPath(ex.cover));
+      if (ex.cover && ex.cover.indexOf("/") >= 0) { img.src = resolve(assetPath(ex.cover)); img.onerror = function () { cdnFallback(img); }; }
       else img.style.display = "none";
       var t = document.createElement("span");
       t.textContent = ex.title || "未命名故事";
