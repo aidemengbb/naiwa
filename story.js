@@ -9,6 +9,7 @@ const CHAPTERS = {
     title: "第一章 · 小卖部",
     code: "NG-RC85-TYTJ",
     start: "store1",
+    music: "ch2_bgm.mp3",   // 临时配乐：作者第一章专属 BGM（bgm_pond）交稿后替换
     scenes: {
 
     // ---------- 图1：黄昏街道 ----------
