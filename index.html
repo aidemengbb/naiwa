@@ -421,7 +421,8 @@
         if (n.voice) tasks.push({ t: "aud", src: resolve("assets/voice/" + (n.voice.indexOf(".") >= 0 ? n.voice : n.voice + ".mp3")) });
       });
     });
-    // 音乐不阻塞载入：进入后由 playMusic 后台加载
+    // 音乐不阻塞载入：预取进缓存（流式播放，进章节即出声），不阻塞 cb
+    preloadMusic(ch.music);
     if (!tasks.length) { cb(); return; }
     var done = 0, finished = false;
     function finish() {
@@ -493,14 +494,9 @@
     if (CHAPTER_KEYS.length) collectScenes(CHAPTERS[CHAPTER_KEYS[0]].scenes);
   })();
 
-  /* ---------- 音乐系统（Web Audio 播放，与语音可同时响） ---------- */
-  var music = null;            // 兜底：无 AudioContext 时用 HTMLAudioElement
-  var musicCtx = null;
-  var musicBuffer = null;
-  var musicSource = null;
+  /* ---------- 音乐系统（HTMLAudio 流式播放：边下载边出声，与语音互不干扰） ---------- */
+  var music = null;
   var musicFile = null;
-  var musicGain = null;        // 音乐音量调节节点（只控音乐，配音不受影响）
-  var pendingMusicResume = false;   // 音乐解码中：下次用户点击（手势）时恢复音频上下文
   var VOL_KEY = "naigua_vol_v1";
   function getVol() {
     try { var v = parseInt(localStorage.getItem(VOL_KEY), 10); if (isNaN(v) || v < 0 || v > 100) v = 50; return v; } catch (e) { return 50; }
@@ -508,7 +504,6 @@
   function setVol(v) { try { localStorage.setItem(VOL_KEY, String(v)); } catch (e) {} }
   function applyMusicVolume() {
     var v = getVol() / 100;
-    if (musicGain) musicGain.gain.value = v;
     if (music) music.volume = v;
   }
   var MUSIC_KEY = "naigua_music_on_v1";
@@ -521,73 +516,20 @@
     var tg = $("volToggle");
     if (tg) tg.textContent = on ? "♪ 音乐开" : "× 音乐关";
   }
-  function initMusicCtx() {
-    if (!musicCtx) {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) {
-        musicCtx = new AC();
-        musicGain = musicCtx.createGain();
-        musicGain.gain.value = getVol() / 100;
-        musicGain.connect(musicCtx.destination);
-      }
-    }
-    return musicCtx;
-  }
-  function startMusicSource() {
-    if (!musicCtx || !musicBuffer) return;
-    if (musicSource) { try { musicSource.stop(); } catch (e) {} musicSource = null; }
-    musicSource = musicCtx.createBufferSource();
-    musicSource.buffer = musicBuffer;
-    musicSource.loop = true;
-    musicSource.connect(musicGain || musicCtx.destination);
-    musicSource.start();
-  }
   function playMusic(file) {
     if (!file) return;
-    if (file === musicFile && (musicSource || (music && !music.paused))) {
-      if (isMusicOn()) { if (musicCtx) musicCtx.resume().catch(function () {}); else if (music && music.paused) music.play().catch(function () {}); }
+    if (file === musicFile && music && !music.paused) {
+      if (isMusicOn() && music.paused) music.play().catch(function () {});
       return;
     }
     musicFile = file;
-    stopMusic();
-    if (initMusicCtx()) {
-      // 趁用户点击的手势窗口立即恢复音频上下文（解码是异步的，等解码完手势早过期了）
-      pendingMusicResume = true;
-      if (isMusicOn()) musicCtx.resume().catch(function () {});
-      var req = new XMLHttpRequest();
-      req.open("GET", resolve("assets/audio/" + file), true);
-      req.responseType = "arraybuffer";
-      req.onload = function () {
-        if (musicFile !== file || !musicCtx) return;
-        musicCtx.decodeAudioData(req.response, function (buf) {
-          if (musicFile !== file) return;
-          pendingMusicResume = false;
-          musicBuffer = buf;
-          if (isMusicOn()) { musicCtx.resume().catch(function () {}); startMusicSource(); }
-        }, function () {
-          // 解码失败（老内核兼容差）→ 降级为 HTMLAudioElement 播放
-          if (musicFile !== file) return;
-          pendingMusicResume = false;
-          if (!music) { music = new Audio(); music.loop = true; }
-          music.volume = getVol() / 100;
-          music.src = resolve("assets/audio/" + file);
-          if (isMusicOn()) music.play().catch(function () {});
-        });
-      };
-      req.onerror = function () {};
-      req.send();
-    } else if (window.Audio) {
-      if (!music) { music = new Audio(); music.loop = true; }
-      music.volume = getVol() / 100;
-      music.src = resolve("assets/audio/" + file);
-      if (isMusicOn()) music.play().catch(function () {});
-    }
+    if (!music) { music = new Audio(); music.loop = true; }
+    music.volume = getVol() / 100;
+    music.src = resolve("assets/audio/" + file);   // 流式：下载到能播的部分就出声
+    if (isMusicOn()) music.play().catch(function () {});
   }
   function stopMusic() {
-    // 只停播放，不清 musicFile（文件状态由 playMusic 管理）
-    if (musicSource) { try { musicSource.stop(); } catch (e) {} musicSource = null; }
-    musicBuffer = null;
-    if (music) { music.pause(); }
+    if (music) { music.pause(); music.removeAttribute("src"); music.load(); }
   }
   function playChapterMusic() {
     var file = null;
@@ -596,13 +538,18 @@
     if (file) playMusic(file);
     else stopMusic();   // 章节没传专属音乐 → 不播音乐
   }
+  function preloadMusic(file) {
+    // 加载动画阶段预取章节音乐（进 HTTP/SW 缓存，进章节即秒播）
+    if (!file) return;
+    try { fetch(resolve("assets/audio/" + file)).catch(function () {}); } catch (e) {}
+  }
   /* 点 ♪ 弹出音量面板；面板内可开关音乐、拖动调音量 */
   $("musicBtn").addEventListener("click", function (ev) {
     ev.stopPropagation();
     var p = $("volPanel");
     if (p.style.display === "flex") { p.style.display = "none"; return; }
-    // 点音乐按钮（手势）也趁机恢复音频上下文
-    if (musicCtx && isMusicOn()) musicCtx.resume().catch(function () {});
+    // 点音乐按钮也是用户手势，趁机把没响起的音乐补起来
+    if (music && music.src && isMusicOn() && music.paused) music.play().catch(function () {});
     var v = getVol();
     $("volSlider").value = v;
     $("volVal").textContent = v + "%";
@@ -614,13 +561,8 @@
     ev.stopPropagation();
     var on = !isMusicOn();
     setMusicOn(on);
-    if (on) {
-      if (musicCtx) { musicCtx.resume().catch(function () {}); startMusicSource(); }
-      else if (music) music.play().catch(function () {});
-    } else {
-      if (musicCtx) musicCtx.suspend().catch(function () {});
-      else if (music) music.pause();
-    }
+    if (on) { if (music && music.src) music.play().catch(function () {}); }
+    else { if (music) music.pause(); }
     updateMusicBtn();
   });
   $("volSlider").addEventListener("input", function () {
@@ -1095,8 +1037,10 @@
   document.body.addEventListener("click", function () {
     // 音量面板开着时：点击外部只收起面板，不推进剧情（防误触对白）
     if ($("volPanel").style.display === "flex") { $("volPanel").style.display = "none"; return; }
-    // 音乐解码中且用户有点击手势 → 趁机恢复音频上下文（手机浏览器必须手势内恢复）
-    if (pendingMusicResume && musicCtx && isMusicOn()) musicCtx.resume().catch(function () {});
+    // 章节内任意点击（手势）时，把没响起来的背景音乐补起来（手机浏览器自动播放限制）
+    if ($("title").style.display === "none" && music && music.src && isMusicOn() && music.paused && music.readyState >= 2) {
+      music.play().catch(function () {});
+    }
     advance();
   });
 
